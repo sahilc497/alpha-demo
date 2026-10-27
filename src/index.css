@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    background-color: #000000;
+    color: #e5e5e5;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom subtle monochrome scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #000000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #262626;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #404040;
+  }
+}
+
+@layer utilities {
+  .text-silver-gradient {
+    background: linear-gradient(180deg, #FFFFFF 0%, #ECECEC 35%, #9CA3AF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-silver-subtle {
+    background: linear-gradient(180deg, #F3F4F6 0%, #9CA3AF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .silver-pill-btn {
+    background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 50%, #CBD5E1 100%);
+    color: #000000;
+    font-weight: 600;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .silver-pill-btn:hover {
+    background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.28), 0 2px 4px rgba(0, 0, 0, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .silver-pill-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+  }
+
+  .dark-card {
+    background: #080808;
+    border: 1px solid #1a1a1a;
+  }
+
+  .dark-card-interactive {
+    background: #080808;
+    border: 1px solid #1a1a1a;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .dark-card-interactive:hover {
+    background: #0c0c0c;
+    border-color: #2e2e2e;
+  }
+}
+
+/* React Flow customizations for pure monochrome aesthetic */
+.react-flow__renderer {
+  background-color: #040404 !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+.react-flow__controls {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8) !important;
+  border: 1px solid #222222 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background-color: #0a0a0a !important;
+}
+
+.react-flow__controls-button {
+  background-color: #0d0d0d !important;
+  border-bottom: 1px solid #222222 !important;
+  color: #a1a1aa !important;
+  fill: #a1a1aa !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #71717a !important;
+  border: 2px solid #000000 !important;
+}
