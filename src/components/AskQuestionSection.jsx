@@ -16,7 +16,9 @@ import {
   FileText,
   HelpCircle,
   Layers,
-  Info
+  Info,
+  Loader2,
+  Server
 } from 'lucide-react';
 import { mockKnowledgeBases, getKnowledgeBaseById } from '../data/mockDocuments';
 import { simulateRetrieval } from '../lib/mockRag';
@@ -45,6 +47,8 @@ function isHRDomainQuery(text) {
 export default function AskQuestionSection() {
   const [question, setQuestion] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingStage, setLoadingStage] = useState("");
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [verificationMode, setVerificationMode] = useState(null); // 'rag' | 'trust'
   const [result, setResult] = useState(null);
   const [selectedClaimId, setSelectedClaimId] = useState(null);
@@ -94,10 +98,21 @@ export default function AskQuestionSection() {
     setSelectedClaimId(null);
     setSelectedEvidenceId(null);
     setActiveDocTab(0);
+    setLoadingProgress(15);
+    setLoadingStage("Initializing secure connection to backend policy engine...");
 
     // 1. Guardrail: Check if question is outside company HR & policy domain
     if (!isHRDomainQuery(q)) {
-      await new Promise(r => setTimeout(r, 250));
+      setLoadingProgress(45);
+      setLoadingStage("Querying domain classifier & HR knowledge namespace...");
+      await new Promise(r => setTimeout(r, 450));
+      setLoadingProgress(80);
+      setLoadingStage("Evaluating semantic distance against policy corpus...");
+      await new Promise(r => setTimeout(r, 450));
+      setLoadingProgress(100);
+      setLoadingStage("Domain guardrail triggered · query out of scope.");
+      await new Promise(r => setTimeout(r, 200));
+
       setResult({
         query: q,
         mode,
@@ -109,12 +124,38 @@ export default function AskQuestionSection() {
     }
 
     try {
+      setLoadingProgress(28);
+      setLoadingStage("Connecting to vector database & generating embeddings...");
+      await new Promise(r => setTimeout(r, 400));
+
       const kb = mockKnowledgeBases[0]; // HR Knowledge Base
-      const retrievalRes = await simulateRetrieval(q, kb.id, { delayMs: 300 });
+      setLoadingProgress(52);
+      setLoadingStage("Retrieving relevant HR handbook passages & policy clauses...");
+      const retrievalRes = await simulateRetrieval(q, kb.id, { delayMs: 400 });
       const passages = retrievalRes.passages.map((p, idx) => ({
         ...p,
         id: p.id || `E${idx + 1}`
       }));
+
+      setLoadingProgress(74);
+      if (mode === 'rag') {
+        setLoadingStage("Executing LLM generation & synthesizing unverified response...");
+      } else {
+        setLoadingStage("Decomposing proposition claims & cross-verifying citations...");
+      }
+      await new Promise(r => setTimeout(r, 550));
+
+      setLoadingProgress(92);
+      if (mode === 'rag') {
+        setLoadingStage("Formatting raw response payload...");
+      } else {
+        setLoadingStage("Computing weakest-link consensus & conflict detection...");
+      }
+      await new Promise(r => setTimeout(r, 450));
+
+      setLoadingProgress(100);
+      setLoadingStage("Finalizing verified response payload...");
+      await new Promise(r => setTimeout(r, 200));
 
       const qLower = q.toLowerCase();
 
@@ -346,12 +387,13 @@ export default function AskQuestionSection() {
               <Search className="w-5 h-5 text-[#71717a] flex-shrink-0" />
               <input
                 type="text"
+                disabled={isProcessing}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Ask e.g. 'Can I encash my unused sick leave at year-end?'"
-                className="w-full bg-transparent text-sm sm:text-base text-white placeholder-zinc-600 focus:outline-none font-sans py-2"
+                className="w-full bg-transparent text-sm sm:text-base text-white placeholder-zinc-600 focus:outline-none font-sans py-2 disabled:opacity-50"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !isProcessing && question.trim()) {
                     e.preventDefault();
                     handleExecuteVerification('trust');
                   }
@@ -370,11 +412,16 @@ export default function AskQuestionSection() {
                 className="flex-1 md:flex-initial px-4 py-2.5 rounded-sm bg-[#111111] hover:bg-[#1a1a1a] border border-red-900/40 text-red-400 hover:text-red-300 text-xs font-mono font-semibold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 whitespace-nowrap"
               >
                 {isProcessing && verificationMode === 'rag' ? (
-                  <div className="w-3 h-3 border-2 border-red-400/40 border-t-red-400 rounded-full animate-spin" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-red-400 animate-spin" />
+                    <span>Fetching RAG...</span>
+                  </>
                 ) : (
-                  <Database className="w-3.5 h-3.5 text-red-400" />
+                  <>
+                    <Database className="w-3.5 h-3.5 text-red-400" />
+                    <span>Verify from RAG</span>
+                  </>
                 )}
-                <span>Verify from RAG</span>
               </button>
 
               {/* Button 2: Verify from TRUST Index */}
@@ -386,11 +433,16 @@ export default function AskQuestionSection() {
                 className="flex-1 md:flex-initial silver-pill-btn px-5 py-2.5 rounded-sm text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-40"
               >
                 {isProcessing && verificationMode === 'trust' ? (
-                  <div className="w-3 h-3 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-black animate-spin" />
+                    <span>Verifying...</span>
+                  </>
                 ) : (
-                  <ShieldCheck className="w-3.5 h-3.5 text-black" />
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-black" />
+                    <span>Verify from TRUST Index</span>
+                  </>
                 )}
-                <span>Verify from TRUST Index</span>
               </button>
             </div>
           </div>
@@ -402,11 +454,12 @@ export default function AskQuestionSection() {
               <button
                 key={idx}
                 type="button"
+                disabled={isProcessing}
                 onClick={() => {
                   setQuestion(p.text);
                   handleExecuteVerification('trust', p.text);
                 }}
-                className={`px-2.5 py-1 rounded-sm border transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-sm border transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${
                   p.risk === 'Out of Scope'
                     ? 'bg-amber-950/20 hover:bg-amber-950/40 border-amber-800/40 text-amber-400'
                     : 'bg-[#0d0d0d] hover:bg-[#161616] border-[#222] text-[#a1a1aa] hover:text-white'
@@ -418,6 +471,95 @@ export default function AskQuestionSection() {
             ))}
           </div>
         </div>
+
+        {/* BACKEND PIPELINE LOADING CARD */}
+        {isProcessing && (
+          <div className="max-w-4xl mx-auto mt-8 p-6 rounded-sm bg-[#080808] border border-[#222222] shadow-2xl relative overflow-hidden animate-fadeIn">
+            {/* Top Glowing Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#141414] overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-300 ease-out ${
+                  verificationMode === 'rag' 
+                    ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500' 
+                    : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-white'
+                }`}
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+
+            {/* Pipeline Status Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-[#191919] gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    verificationMode === 'rag' ? 'bg-red-400' : 'bg-emerald-400'
+                  }`} />
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                    verificationMode === 'rag' ? 'bg-red-500' : 'bg-emerald-500'
+                  }`} />
+                </span>
+                <span className="text-xs font-mono uppercase tracking-wider font-semibold text-white">
+                  Fetching from Backend Engine
+                </span>
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-sm bg-[#121212] border border-[#262626] text-[#8e8e93]">
+                  {verificationMode === 'rag' ? 'POST /api/v1/rag-query' : 'POST /api/v1/trust-verify'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs font-mono">
+                <span className="text-[#71717a] text-[11px]">
+                  ENGINE: <span className="text-white font-medium">{verificationMode === 'rag' ? 'STANDARD_RAG' : 'TRUST_INDEX_VERIFIER'}</span>
+                </span>
+                <span className="font-bold text-white bg-[#141414] px-2 py-0.5 rounded border border-[#262626]">
+                  {loadingProgress}%
+                </span>
+              </div>
+            </div>
+
+            {/* Active Stage & Spinner */}
+            <div className="flex items-center gap-3.5 py-3">
+              <Loader2 className={`w-5 h-5 animate-spin flex-shrink-0 ${
+                verificationMode === 'rag' ? 'text-red-400' : 'text-emerald-400'
+              }`} />
+              <div className="flex-1">
+                <p className="text-sm font-mono text-white font-medium">
+                  {loadingStage}
+                </p>
+                <p className="text-xs font-mono text-[#71717a] mt-0.5 truncate">
+                  Target Query: <span className="text-[#a1a1aa]">"{question}"</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Shimmer / Skeleton Pulse to simulate backend reasoning */}
+            <div className="mt-5 pt-4 border-t border-[#191919] space-y-3">
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#52525b]">
+                <span className="flex items-center gap-1.5">
+                  <Server className="w-3.5 h-3.5" />
+                  <span>Processing Knowledge Base &amp; Embeddings</span>
+                </span>
+                <span className="animate-pulse">Retrieving...</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="h-3.5 bg-[#121212] rounded-sm w-3/4 animate-pulse" />
+                <div className="h-3 bg-[#0f0f0f] rounded-sm w-full animate-pulse" />
+                <div className="h-3 bg-[#0f0f0f] rounded-sm w-5/6 animate-pulse" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                <div className="p-2.5 rounded-sm bg-[#0e0e0e] border border-[#1b1b1b] flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#333] animate-ping" />
+                  <span className="text-[10px] font-mono text-[#71717a]">Vector Search: Cosine Similarity</span>
+                </div>
+                <div className="p-2.5 rounded-sm bg-[#0e0e0e] border border-[#1b1b1b] flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#333] animate-ping" />
+                  <span className="text-[10px] font-mono text-[#71717a]">Propositional Claim Extraction</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* OUT OF DOMAIN GUARD CARD (When user asks non-HR question) */}
         {result?.isOutOfDomain && (
@@ -510,8 +652,9 @@ export default function AskQuestionSection() {
                   <div className="mt-3 text-right">
                     <button
                       type="button"
+                      disabled={isProcessing}
                       onClick={() => handleExecuteVerification('trust')}
-                      className="silver-pill-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase inline-flex items-center gap-1"
+                      className="silver-pill-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase inline-flex items-center gap-1 disabled:opacity-40"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-black" />
                       <span>Run TRUST Index to catch &amp; rectify this hallucination</span>
