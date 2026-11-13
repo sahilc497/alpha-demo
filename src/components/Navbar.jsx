@@ -59,14 +59,6 @@ export default function Navbar({ onLaunchDemo }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
-          {/* Mistral Engine Online Status Badge */}
-          <div
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase border rounded-sm border-emerald-500/40 text-emerald-400 bg-emerald-950/20"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Mistral Engine: Online</span>
-          </div>
-
           {/* Launch Demo Silver Pill CTA */}
           <button
             onClick={onLaunchDemo || scrollToAsk}
