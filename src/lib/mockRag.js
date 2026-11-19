@@ -32,18 +32,55 @@ export async function executeRetrieval(query, kbId, options = { delayMs: 350 }) 
     };
   }
 
-  // Otherwise score passages in selected KB based on semantic term overlap
-  const queryWords = query.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 2);
+  // Otherwise score passages in selected KB based on semantic term overlap and title weight
+  const queryWords = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+
+  // Synonyms and concept mappings
+  const conceptMap = {
+    dress: ['attire', 'casual', 'clothes', 'clothing', 'shoes', 'sneakers'],
+    travel: ['flight', 'hotel', 'per diem', 'meal', 'expenses', 'trip', 'airfare'],
+    insurance: ['health', 'medical', 'dental', 'vision', 'premium', 'doctor'],
+    laptop: ['device', 'computer', 'macbook', 'equipment', 'antivirus', 'hardware'],
+    gift: ['bribe', 'bribery', 'ethics', 'hospitality', 'vendor', 'conduct'],
+    moonlight: ['moonlighting', 'secondary', 'freelance', 'consulting', 'outside'],
+    overtime: ['hours', 'working', 'shift', 'hourly', '40 hours'],
+    referral: ['refer', 'candidate', 'bonus', 'tuition', 'education'],
+    harassment: ['discrimination', 'bullying', 'retaliation', 'conduct', 'bias'],
+    whistleblower: ['grievance', 'hotline', 'anonymous', 'retaliation', 'report'],
+    sabbatical: ['holiday', 'floating', 'leave', 'unpaid'],
+    probation: ['new hire', 'onboarding', '90 days', 'probationary'],
+    severance: ['resignation', 'notice', 'payout', 'settlement', 'separation']
+  };
+
+  const expandedQuery = new Set(queryWords);
+  queryWords.forEach(w => {
+    for (const [key, syns] of Object.entries(conceptMap)) {
+      if (w === key || syns.includes(w)) {
+        expandedQuery.add(key);
+        syns.forEach(s => expandedQuery.add(s));
+      }
+    }
+  });
+
+  const queryTokens = Array.from(expandedQuery);
 
   const scoredPassages = kb.passages.map((p, idx) => {
-    const textLower = (p.title + " " + p.text).toLowerCase();
+    const titleLower = p.title.toLowerCase();
+    const textLower = p.text.toLowerCase();
     let hits = 0;
-    queryWords.forEach(w => {
-      if (textLower.includes(w)) hits++;
+    let titleHits = 0;
+
+    queryTokens.forEach(w => {
+      if (titleLower.includes(w)) {
+        titleHits++;
+        hits += 3; // 3x weight for title matches
+      } else if (textLower.includes(w)) {
+        hits++;
+      }
     });
 
-    const calculatedScore = queryWords.length > 0 
-      ? Math.min(0.98, Math.max(0.25, 0.45 + (hits / queryWords.length) * 0.5))
+    const calculatedScore = queryTokens.length > 0 
+      ? Math.min(0.98, Math.max(0.20, 0.40 + (hits / (queryTokens.length * 1.5)) * 0.55))
       : 0.5;
 
     return {

@@ -32,9 +32,9 @@ export async function generateMistralAnswer(query, contextPassages = []) {
     `[Document Section ${idx + 1}: ${p.docTitle || p.title || 'Handbook Policy'}]\n${p.text}`
   ).join("\n\n");
 
-  const systemPrompt = `You are the enterprise HR AI assistant.
+  const systemPrompt = `You are the enterprise corporate and HR policy AI assistant.
 Answer the employee's question directly using the provided company handbook passages below.
-If the retrieved evidence does not cover the question, state: "The company HR policy handbook does not contain provisions for this topic."
+If the retrieved evidence does not cover the question, state: "The company policy handbook does not contain provisions for this topic."
 Keep the tone professional, objective, and precise.
 
 Company Policy Context:
@@ -94,9 +94,9 @@ ${contextText || "NO CONTEXT PASSAGES AVAILABLE."}`;
   } else if (queryLower.includes("pet") || queryLower.includes("dog") || queryLower.includes("cat")) {
     generatedAnswer = "The company HR policy handbook does not contain provisions or entitlements for paid pet bereavement leave.";
   } else if (contextPassages && contextPassages.length > 0) {
-    generatedAnswer = `According to ${contextPassages[0].docTitle || 'the HR manual'}: ${contextPassages[0].text.slice(0, 220)}...`;
+    generatedAnswer = `According to ${contextPassages[0].docTitle || 'the Company Handbook'}: ${contextPassages[0].text}`;
   } else {
-    generatedAnswer = "The company HR policy handbook does not contain provisions for this topic.";
+    generatedAnswer = "The Enterprise Company Handbook does not contain provisions for this topic.";
   }
 
   return {
